@@ -138,26 +138,14 @@ function buildSessionConfig({ model, voice, instructions }) {
   return {
     model,
     instructions,
-    audio: {
-      input: {
-        format: {
-          type: 'audio/pcm',
-          rate: 24000,
-        },
-        transcription: {
-          model: 'whisper-1',
-        },
-        turn_detection: {
-          type: 'server_vad',
-        },
-      },
-      output: {
-        format: {
-          type: 'audio/pcm',
-          rate: 24000,
-        },
-        voice,
-      },
+    voice,
+    input_audio_format: 'pcm16',
+    output_audio_format: 'pcm16',
+    input_audio_transcription: {
+      model: 'whisper-1',
+    },
+    turn_detection: {
+      type: 'server_vad',
     },
     reasoning: {
       effort: 'low',

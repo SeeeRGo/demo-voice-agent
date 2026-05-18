@@ -181,11 +181,7 @@ function sendSessionUpdate() {
     type: 'session.update',
     session: {
       instructions: dom.instructionsInput.value.trim(),
-      audio: {
-        output: {
-          voice: dom.voiceSelect.value,
-        },
-      },
+      voice: dom.voiceSelect.value,
     },
   };
 
