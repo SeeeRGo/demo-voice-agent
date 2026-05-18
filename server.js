@@ -213,23 +213,68 @@ async function handleRealtimeCall(req, res) {
     instructions,
   });
 
-  const form = new FormData();
-  form.set('sdp', sdp);
-  form.set('session', JSON.stringify(session));
+  let sessionResponse;
+  try {
+    sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+        'OpenAI-Safety-Identifier': SAFETY_IDENTIFIER,
+      },
+      body: JSON.stringify(session),
+    });
+  } catch (error) {
+    sendJson(res, 502, {
+      error: 'Failed to create the OpenAI Realtime session.',
+      detail: error.message,
+    });
+    return;
+  }
+
+  const sessionBody = await sessionResponse.text();
+  if (!sessionResponse.ok) {
+    sendJson(res, sessionResponse.status, {
+      error: 'OpenAI rejected the Realtime session request.',
+      status: sessionResponse.status,
+      detail: sessionBody,
+    });
+    return;
+  }
+
+  let sessionData;
+  try {
+    sessionData = JSON.parse(sessionBody);
+  } catch (error) {
+    sendJson(res, 502, {
+      error: 'OpenAI returned an invalid Realtime session response.',
+      detail: error.message,
+    });
+    return;
+  }
+
+  const clientSecret = sessionData?.client_secret?.value;
+  if (!clientSecret) {
+    sendJson(res, 502, {
+      error: 'OpenAI session response did not include a client secret.',
+      detail: sessionBody,
+    });
+    return;
+  }
 
   let upstream;
   try {
     upstream = await fetch('https://api.openai.com/v1/realtime/calls', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'OpenAI-Safety-Identifier': SAFETY_IDENTIFIER,
+        Authorization: `Bearer ${clientSecret}`,
+        'Content-Type': 'application/sdp',
       },
-      body: form,
+      body: sdp,
     });
   } catch (error) {
     sendJson(res, 502, {
-      error: 'Failed to reach the OpenAI Realtime API.',
+      error: 'Failed to reach the OpenAI Realtime call API.',
       detail: error.message,
     });
     return;
@@ -252,6 +297,8 @@ async function handleRealtimeCall(req, res) {
     location,
     sdp: responseText,
     session,
+    sessionId: sessionData.id,
+    expiresAt: sessionData?.client_secret?.expires_at || null,
   });
 }
 
