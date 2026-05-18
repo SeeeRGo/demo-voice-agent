@@ -139,6 +139,28 @@ function buildSessionConfig({ model, instructions }) {
     type: 'realtime',
     model,
     instructions,
+    audio: {
+      input: {
+        format: {
+          type: 'audio/pcm',
+          rate: 24000,
+        },
+        transcription: {
+          model: 'whisper-1',
+        },
+        turn_detection: {
+          type: 'server_vad',
+        },
+      },
+      output: {
+        format: {
+          type: 'audio/pcm',
+          rate: 24000,
+        },
+        voice: DEFAULT_VOICE,
+        speed: 1.0,
+      },
+    },
   };
 }
 
@@ -171,19 +193,15 @@ async function handleRealtimeCall(req, res) {
     return;
   }
 
-  const sdp = typeof body.sdp === 'string' ? body.sdp.trim() : '';
-  if (!sdp) {
-    sendJson(res, 400, { error: 'Missing SDP offer in request body.' });
-    return;
-  }
-
   const model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
+  const voice = typeof body.voice === 'string' && body.voice.trim() ? body.voice.trim() : DEFAULT_VOICE;
   const instructions = typeof body.instructions === 'string' && body.instructions.trim()
     ? body.instructions.trim()
     : DEFAULT_INSTRUCTIONS;
 
   const session = buildSessionConfig({
     model,
+    voice,
     instructions,
   });
 
@@ -238,40 +256,8 @@ async function handleRealtimeCall(req, res) {
     return;
   }
 
-  let upstream;
-  try {
-    upstream = await fetch('https://api.openai.com/v1/realtime/calls', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${clientSecret}`,
-        'Content-Type': 'application/sdp',
-      },
-      body: sdp,
-    });
-  } catch (error) {
-    sendJson(res, 502, {
-      error: 'Failed to reach the OpenAI Realtime call API.',
-      detail: error.message,
-    });
-    return;
-  }
-
-  const responseText = await upstream.text();
-  const location = upstream.headers.get('location');
-
-  if (!upstream.ok) {
-    sendJson(res, upstream.status, {
-      error: 'OpenAI rejected the Realtime call request.',
-      status: upstream.status,
-      detail: responseText,
-    });
-    return;
-  }
-
   sendJson(res, 200, {
-    callId: extractCallId(location),
-    location,
-    sdp: responseText,
+    clientSecret,
     session,
     sessionId: clientSecretData?.session?.id || null,
     expiresAt: clientSecretData?.expires_at || null,

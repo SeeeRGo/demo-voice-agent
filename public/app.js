@@ -189,6 +189,28 @@ function sendSessionUpdate() {
   logEvent('session.update', payload);
 }
 
+async function postOfferToRealtime(offerSdp, clientSecret, signal) {
+  const response = await fetch('https://api.openai.com/v1/realtime/calls', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${clientSecret}`,
+      'Content-Type': 'application/sdp',
+    },
+    body: offerSdp,
+    signal,
+  });
+
+  const answerSdp = await response.text();
+  if (!response.ok) {
+    throw new Error(answerSdp || `OpenAI request failed with ${response.status}`);
+  }
+
+  return {
+    answerSdp,
+    location: response.headers.get('location'),
+  };
+}
+
 function waitForIceGatheringComplete(pc, signal) {
   if (pc.iceGatheringState === 'complete') {
     return Promise.resolve();
@@ -313,7 +335,6 @@ async function startSession() {
 
     dataChannel.onopen = () => {
       logEvent('datachannel.open', { label: dataChannel.label });
-      sendSessionUpdate();
     };
 
     dataChannel.onmessage = (event) => {
@@ -338,7 +359,6 @@ async function startSession() {
     await waitForIceGatheringComplete(pc, state.abortController.signal);
 
     const payload = {
-      sdp: pc.localDescription?.sdp || offer.sdp,
       model: dom.modelInput.value.trim(),
       voice: dom.voiceSelect.value,
       instructions: dom.instructionsInput.value.trim(),
@@ -365,12 +385,20 @@ async function startSession() {
       throw new Error(body.detail || body.error || `OpenAI request failed with ${response.status}`);
     }
 
-    state.callId = body.callId || body.location || null;
+    const clientSecret = body.clientSecret || body.value;
+    if (!clientSecret) {
+      throw new Error('Server did not return a Realtime client secret.');
+    }
+
+    state.callId = body.sessionId || body.location || null;
     setCallId(state.callId);
+
+    const offerSdp = pc.localDescription?.sdp || offer.sdp;
+    const realtimeResponse = await postOfferToRealtime(offerSdp, clientSecret, state.abortController.signal);
 
     await pc.setRemoteDescription({
       type: 'answer',
-      sdp: body.sdp,
+      sdp: realtimeResponse.answerSdp,
     });
 
     setStatus('Live', 'live');
