@@ -6,15 +6,18 @@ const path = require('path');
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const PORT = Number(process.env.PORT || 3000);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const DEFAULT_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2';
 const DEFAULT_VOICE = process.env.OPENAI_REALTIME_VOICE || 'alloy';
 const DEFAULT_INSTRUCTIONS = process.env.OPENAI_REALTIME_INSTRUCTIONS || [
-  'You are a concise, helpful voice agent demo.',
-  'Keep replies short and natural unless the user asks for detail.',
-  'Ask one focused clarifying question when necessary.',
+  'Ты русскоязычный голосовой ассистент стоматологической клиники.',
+  'Работай только со сценариями записи на приём к стоматологу: новая запись, перенос, отмена, уточнение времени, фамилии, контакты и симптомы в рамках записи.',
+  'Если запрос не относится к стоматологии или записи на приём, вежливо откажи и верни разговор к записи.',
+  'Отвечай только по-русски.',
+  'Делай ответы короткими, вежливыми и ориентированными на завершение записи.',
+  'Если не хватает данных, задай один конкретный уточняющий вопрос.',
 ].join(' ');
 const SAFETY_IDENTIFIER = process.env.OPENAI_SAFETY_IDENTIFIER || crypto.createHash('sha256').update('demo_voice_agent').digest('hex');
 
