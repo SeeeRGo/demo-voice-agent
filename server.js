@@ -136,7 +136,6 @@ function extractCallId(locationHeader) {
 
 function buildSessionConfig({ model, voice, instructions }) {
   return {
-    type: 'realtime',
     model,
     instructions,
     audio: {
