@@ -147,9 +147,6 @@ function buildSessionConfig({ model, voice, instructions }) {
     turn_detection: {
       type: 'server_vad',
     },
-    reasoning: {
-      effort: 'low',
-    },
   };
 }
 
