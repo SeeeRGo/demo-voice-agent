@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Agent Demo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="backdrop backdrop-a"></div>
+    <div class="backdrop backdrop-b"></div>
+
+    <main class="shell">
+      <section class="hero">
+        <div class="eyebrow">OpenAI Realtime</div>
+        <h1>Speak to a live voice agent in the browser.</h1>
+        <p class="lede">
+          A small demo that captures mic audio, proxies the SDP exchange through a local Node server, and streams the assistant response back as speech.
+        </p>
+        <div class="hero-meta">
+          <span class="chip" id="connectionChip">Offline</span>
+          <span class="hero-note">Local server proxy keeps your API key off the client.</span>
+        </div>
+      </section>
+
+      <section class="layout">
+        <section class="panel panel-primary">
+          <div class="panel-header">
+            <div>
+              <h2>Session controls</h2>
+              <p>Configure the agent, then connect and start speaking.</p>
+            </div>
+            <div class="stack">
+              <button class="button button-primary" id="connectButton" type="button">Connect</button>
+              <button class="button button-secondary" id="muteButton" type="button" disabled>Mic on</button>
+              <button class="button button-ghost" id="resetButton" type="button">Reset</button>
+            </div>
+          </div>
+
+          <form class="form" id="configForm">
+            <label class="field">
+              <span>Model</span>
+              <input id="modelInput" name="model" type="text" spellcheck="false" />
+            </label>
+
+            <label class="field">
+              <span>Voice</span>
+              <select id="voiceSelect" name="voice">
+                <option value="alloy">alloy</option>
+                <option value="marin">marin</option>
+              </select>
+            </label>
+
+            <label class="field field-wide">
+              <span>Instructions</span>
+              <textarea
+                id="instructionsInput"
+                name="instructions"
+                rows="7"
+                spellcheck="false"
+              ></textarea>
+            </label>
+          </form>
+
+          <div class="status-grid">
+            <div class="status-card">
+              <span class="status-label">Connection</span>
+              <strong id="statusText">Idle</strong>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Call ID</span>
+              <strong id="callIdText">-</strong>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Mic</span>
+              <strong id="micText">Off</strong>
+            </div>
+          </div>
+
+          <p class="helper" id="helperText">
+            Use localhost or HTTPS so the browser can access your microphone.
+          </p>
+        </section>
+
+        <section class="panel panel-secondary">
+          <div class="panel-header compact">
+            <div>
+              <h2>Transcript</h2>
+              <p>Live speech and assistant text extracted from the Realtime events.</p>
+            </div>
+          </div>
+          <div class="feed" id="transcriptFeed" aria-live="polite"></div>
+        </section>
+
+        <section class="panel panel-secondary">
+          <div class="panel-header compact">
+            <div>
+              <h2>Event log</h2>
+              <p>Raw Realtime events, useful for debugging the session lifecycle.</p>
+            </div>
+          </div>
+          <div class="log" id="eventLog" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+
+    <audio id="remoteAudio" autoplay playsinline></audio>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

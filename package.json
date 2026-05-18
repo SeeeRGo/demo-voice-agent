@@ -1,0 +1,14 @@
+{
+  "name": "demo_voice_agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small browser-based OpenAI Realtime voice agent demo.",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
