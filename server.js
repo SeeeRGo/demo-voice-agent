@@ -134,19 +134,11 @@ function extractCallId(locationHeader) {
   return match ? match[1] : locationHeader;
 }
 
-function buildSessionConfig({ model, voice, instructions }) {
+function buildSessionConfig({ model, instructions }) {
   return {
+    type: 'realtime',
     model,
     instructions,
-    voice,
-    input_audio_format: 'pcm16',
-    output_audio_format: 'pcm16',
-    input_audio_transcription: {
-      model: 'whisper-1',
-    },
-    turn_detection: {
-      type: 'server_vad',
-    },
   };
 }
 
@@ -186,62 +178,62 @@ async function handleRealtimeCall(req, res) {
   }
 
   const model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : DEFAULT_MODEL;
-  const voice = typeof body.voice === 'string' && body.voice.trim() ? body.voice.trim() : DEFAULT_VOICE;
   const instructions = typeof body.instructions === 'string' && body.instructions.trim()
     ? body.instructions.trim()
     : DEFAULT_INSTRUCTIONS;
 
   const session = buildSessionConfig({
     model,
-    voice,
     instructions,
   });
 
-  let sessionResponse;
+  let clientSecretResponse;
   try {
-    sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    clientSecretResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
         'OpenAI-Safety-Identifier': SAFETY_IDENTIFIER,
       },
-      body: JSON.stringify(session),
+      body: JSON.stringify({
+        session,
+      }),
     });
   } catch (error) {
     sendJson(res, 502, {
-      error: 'Failed to create the OpenAI Realtime session.',
+      error: 'Failed to create the OpenAI Realtime client secret.',
       detail: error.message,
     });
     return;
   }
 
-  const sessionBody = await sessionResponse.text();
-  if (!sessionResponse.ok) {
-    sendJson(res, sessionResponse.status, {
-      error: 'OpenAI rejected the Realtime session request.',
-      status: sessionResponse.status,
-      detail: sessionBody,
+  const clientSecretBody = await clientSecretResponse.text();
+  if (!clientSecretResponse.ok) {
+    sendJson(res, clientSecretResponse.status, {
+      error: 'OpenAI rejected the Realtime client secret request.',
+      status: clientSecretResponse.status,
+      detail: clientSecretBody,
     });
     return;
   }
 
-  let sessionData;
+  let clientSecretData;
   try {
-    sessionData = JSON.parse(sessionBody);
+    clientSecretData = JSON.parse(clientSecretBody);
   } catch (error) {
     sendJson(res, 502, {
-      error: 'OpenAI returned an invalid Realtime session response.',
+      error: 'OpenAI returned an invalid Realtime client secret response.',
       detail: error.message,
     });
     return;
   }
 
-  const clientSecret = sessionData?.client_secret?.value;
+  const clientSecret = clientSecretData?.value;
   if (!clientSecret) {
     sendJson(res, 502, {
-      error: 'OpenAI session response did not include a client secret.',
-      detail: sessionBody,
+      error: 'OpenAI client secret response did not include a token value.',
+      detail: clientSecretBody,
     });
     return;
   }
@@ -281,8 +273,8 @@ async function handleRealtimeCall(req, res) {
     location,
     sdp: responseText,
     session,
-    sessionId: sessionData.id,
-    expiresAt: sessionData?.client_secret?.expires_at || null,
+    sessionId: clientSecretData?.session?.id || null,
+    expiresAt: clientSecretData?.expires_at || null,
   });
 }
 
